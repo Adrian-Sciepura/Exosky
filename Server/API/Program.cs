@@ -1,6 +1,4 @@
 
-using System.Diagnostics;
-
 namespace API
 {
     public class Program

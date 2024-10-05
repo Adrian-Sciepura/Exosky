@@ -7,9 +7,9 @@ namespace API.Controllers
     public class ExoskyController : ControllerBase
     {
         [HttpGet("getFile/{fileName}")]
-        public async Task<IActionResult> GetStarData(string fileName)
+        public async Task<IActionResult> GetFile(string fileName)
         {
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "data", fileName);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "exosky", fileName);
             if(!System.IO.File.Exists(filePath))
             {
                 return NotFound();
@@ -24,6 +24,26 @@ namespace API.Controllers
 
             memory.Position = 0;
             return File(memory, "application/octet-stream", fileName);
+        }
+
+        [HttpGet("getStarData/{number}")]
+        public async Task<IActionResult> GetStarData(int number)
+        {
+            if (!System.IO.File.Exists(SpaceData.StarDataFilePath))
+                if (!await SpaceData.RequestStarDataFromGAIA(number))
+                    return NotFound();
+
+            return Ok();
+        }
+
+        [HttpGet("getExoplanetData")]
+        public async Task<IActionResult> GetExoplanetData()
+        {
+            if (!System.IO.File.Exists(SpaceData.ExoplanetFilePath))
+                if (!await SpaceData.RequestExoplanetDataFromNASA())
+                    return NotFound();
+            
+            return Ok();
         }
     }
 }
