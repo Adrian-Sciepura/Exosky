@@ -4,19 +4,34 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
-    public float speed = 10f;
+    public float moveSpeed = 10f;
+    public float rotationSpeed = 100f;
+    public float zoomSpeed = 10f;
 
-    // Start is called before the first frame update
-    void Start()
+    public float minZoom = 5f;
+    public float maxZoom = 50f;
+    private float currentZoom = 5f;
+
+    private void Start()
     {
-        
+        currentZoom = minZoom;
     }
 
-    // Update is called once per frame
     void Update()
-    {
-        float h = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
-        float v = Input.GetAxis("Vertical") * speed * Time.deltaTime;
-        transform.Translate(new Vector3(h, 0, v));
+    {         
+        if (Input.GetMouseButton(1))
+        {
+            float mouseX = Input.GetAxis("Mouse X") * rotationSpeed * Time.deltaTime;
+            float mouseY = Input.GetAxis("Mouse Y") * rotationSpeed * Time.deltaTime;
+
+            transform.Rotate(Vector3.up, mouseX, Space.World);
+            transform.Rotate(Vector3.left, mouseY);
+        }
+
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        currentZoom -= scroll * zoomSpeed;
+        currentZoom = Mathf.Clamp(currentZoom, minZoom, maxZoom);
+
+        Camera.main.fieldOfView = currentZoom;
     }
 }
