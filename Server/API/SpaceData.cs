@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using EFCore.BulkExtensions;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -30,7 +31,11 @@ namespace API
                     dec,
                     parallax
                 FROM gaiadr3.gaia_source
-                WHERE ra IS NOT NULL AND dec IS NOT NULL AND parallax is NOT NULL
+                WHERE ra IS NOT NULL 
+                    AND dec IS NOT NULL 
+                    AND parallax is NOT NULL 
+                    AND phot_g_mean_mag IS NOT NULL
+                ORDER BY phot_g_mean_mag DESC
             ";
 
             var result = await Task.Run(() => CallPythonGAIADataRequester(StarDataFilePath, query));
@@ -41,6 +46,7 @@ namespace API
             using (StreamReader streamReader = new StreamReader(StarDataFilePath))
             {
                 string line = streamReader.ReadLine();
+                List<StarData> data = new List<StarData>();
                 while ((line = streamReader.ReadLine()) != null)
                 {
                     string[] elements = line.Split(',');
@@ -54,9 +60,12 @@ namespace API
                         z = double.Parse(elements[4], CultureInfo.InvariantCulture)
                     };
 
+                    data.Add(starData);
+
                     var res = context.Stars.Add(starData);
                 }
-                context.SaveChanges();
+
+                context.BulkInsert(data);
             }
 
             return true;

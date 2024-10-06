@@ -10,6 +10,13 @@ public class ObjectsManager : MonoBehaviour
     [SerializeField] private GameObject exoplanetPrefab;
     [SerializeField] private GameObject starPrefab;
 
+    Matrix4x4[] matrices;
+    int noOfStars;
+
+    Mesh mesh;
+    Material material;
+
+    bool isRendering;
 
     private void Awake()
     {
@@ -38,17 +45,35 @@ public class ObjectsManager : MonoBehaviour
 
         Exoplanet currExoplanet = NetworkManager.Instance.exoplanets.items[0];
         Vector3 exoplanetPos = new Vector3((float)currExoplanet.x, (float)currExoplanet.y, (float)currExoplanet.z);
-        exoplanetPos /= 10.0f;
+        exoplanetPos /= 5.0f;
         Instantiate(exoplanetPrefab, exoplanetPos, Quaternion.identity, spawnedExoplanetsRoot.transform);
 
         // Stars
 
         Vector3 startPos;
+        mesh = starPrefab.GetComponent<MeshFilter>().sharedMesh;
+        material = starPrefab.GetComponent<MeshRenderer>().sharedMaterial;
+
+        if (mesh == null || material == null)
+            return;
+
+        noOfStars = NetworkManager.Instance.stars.items.Length;
+        matrices = new Matrix4x4[noOfStars];
+
+        int i = 0;
         foreach (var star in NetworkManager.Instance.stars.items)
         {
             startPos = new Vector3((float)star.x, (float)star.y, (float)star.z);
-            startPos /= 10.0f;
-            Instantiate(starPrefab, startPos, Quaternion.identity, spawnedStarsRoot.transform);
+            startPos /= 5.0f;
+            matrices[i++] = Matrix4x4.TRS(startPos, Quaternion.identity, Vector3.one);
         }
+
+        isRendering = true;
+    }
+
+    public void Update()
+    {
+        if(isRendering)
+            Graphics.DrawMeshInstanced(mesh, 0, material, matrices, noOfStars);
     }
 }
