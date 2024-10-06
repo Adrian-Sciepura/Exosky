@@ -8,9 +8,10 @@ namespace API.Controllers
     {
         private readonly AppDbContext _context;
 
-        public ExoskyController(AppDbContext context)
+        public ExoskyController(IConfiguration configuration, AppDbContext context)
         {
             _context = context;
+            SpaceData.PythonPath = configuration["ExternalTools:PythonPath"];
         }
 
 

@@ -12,7 +12,6 @@ namespace API
     public class SpaceData
     {
         private static readonly double rad = (Math.PI / 180);
-        private static string PythonPath = @"C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\python.exe";
         private static readonly string NASA_API_URL = @"https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=SELECT+pl_name,hostname,ra,dec,sy_plx+FROM+ps+WHERE+ra+IS+NOT+NULL+AND+dec+IS+NOT+NULL+AND+sy_plx+IS+NOT+NULL+AND+pl_bmasse+%3E+1&format=json";
         
         private static readonly string CachePath = Path.Combine(Directory.GetCurrentDirectory(), "cache");
@@ -20,7 +19,8 @@ namespace API
         
         public static readonly string StarDataFilePath = Path.Combine(DataPath, "STAR_DATA.csv");
         public static readonly string ExoplanetFilePath = Path.Combine(DataPath, "EXOPLANET_DATA.csv");
-        
+
+        public static string PythonPath = "";
 
         public static async Task<bool> AddGAIAStarDataToDB(int numberOfRecords, AppDbContext context)
         {
