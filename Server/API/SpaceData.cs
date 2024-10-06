@@ -1,18 +1,27 @@
-﻿using System.Diagnostics;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using static API.SpaceData;
 
 namespace API
 {
     public class SpaceData
     {
+        private static readonly double rad = (Math.PI / 180);
         private static string PythonPath = @"C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python39_64\python.exe";
-        private static readonly string NASA_API_URL = @"https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=SELECT+pl_name,hostname,ra,dec,sy_plx+FROM+ps+WHERE+ra+IS+NOT+NULL+AND+dec+IS+NOT+NULL+AND+sy_plx+IS+NOT+NULL+AND+pl_bmasse+%3E+1&format=csv";
+        private static readonly string NASA_API_URL = @"https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=SELECT+pl_name,hostname,ra,dec,sy_plx+FROM+ps+WHERE+ra+IS+NOT+NULL+AND+dec+IS+NOT+NULL+AND+sy_plx+IS+NOT+NULL+AND+pl_bmasse+%3E+1&format=json";
+        
+        private static readonly string CachePath = Path.Combine(Directory.GetCurrentDirectory(), "cache");
         private static readonly string DataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
+        
         public static readonly string StarDataFilePath = Path.Combine(DataPath, "STAR_DATA.csv");
         public static readonly string ExoplanetFilePath = Path.Combine(DataPath, "EXOPLANET_DATA.csv");
         
-        public static async Task<bool> RequestStarDataFromGAIA(int numberOfRecords)
+
+        public static async Task<bool> AddGAIAStarDataToDB(int numberOfRecords, AppDbContext context)
         {
             var query = $@"
                 SELECT TOP {numberOfRecords}
@@ -24,12 +33,80 @@ namespace API
                 WHERE ra IS NOT NULL AND dec IS NOT NULL AND parallax is NOT NULL
             ";
 
-            return await Task.Run(() => CallPythonGAIADataRequester(StarDataFilePath, query));
+            var result = await Task.Run(() => CallPythonGAIADataRequester(StarDataFilePath, query));
+            
+            if (!result)
+                return false;
+
+            using (StreamReader streamReader = new StreamReader(StarDataFilePath))
+            {
+                string line = streamReader.ReadLine();
+                while ((line = streamReader.ReadLine()) != null)
+                {
+                    string[] elements = line.Split(',');
+
+                    var starData = new StarData
+                    {
+                        GAIA_id = elements[0],
+                        parallax = double.Parse(elements[1], CultureInfo.InvariantCulture),
+                        x = double.Parse(elements[2], CultureInfo.InvariantCulture),
+                        y = double.Parse(elements[3], CultureInfo.InvariantCulture),
+                        z = double.Parse(elements[4], CultureInfo.InvariantCulture)
+                    };
+
+                    var res = context.Stars.Add(starData);
+                }
+                context.SaveChanges();
+            }
+
+            return true;
         }
 
-        public static async Task<bool> RequestExoplanetDataFromNASA()
+        public static async Task<bool> AddNASAExoplanetDataToDB(AppDbContext context)
         {
-            return await CallHttpNASADataRequester(ExoplanetFilePath);
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    var result = await client.GetAsync(NASA_API_URL);
+                    result.EnsureSuccessStatusCode();
+                    var responseStream = await result.Content.ReadAsStreamAsync();
+
+                    using (StreamReader reader = new StreamReader(responseStream))
+                    {
+                        var jsonData = reader.ReadToEnd();
+                        var exoplanetData = JsonConvert.DeserializeObject<List<ExoplanetJsonDeserializeData>>(jsonData);
+
+                        foreach (var ex in exoplanetData)
+                        {
+                            /*if (context.Exoplanets.Any(x => x.name == ex.pl_name))
+                                continue;
+*/
+                            (double _x, double _y, double _z) = ConvertToCartesian(ex.ra, ex.dec, ex.sy_plx);
+
+                            var exoplanet = new ExoplanetData
+                            {
+                                name = ex.pl_name,
+                                parallax = ex.sy_plx,
+                                x = _x,
+                                y = _y,
+                                z = _z
+                            };
+
+                            context.Exoplanets.Add(exoplanet);
+                            
+                        }
+                        context.SaveChanges();
+                    }
+
+
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
+            }
         }
 
         private static bool CallPythonGAIADataRequester(string path, string query)
@@ -57,79 +134,99 @@ namespace API
             return success;
         }
 
-        private static async Task<bool> CallHttpNASADataRequester(string path)
+        public static bool GetExoplanetStars(string exoplanetName, AppDbContext context)
         {
-            using (HttpClient client = new HttpClient())
+            var searchResult = context.Exoplanets.Find(exoplanetName);
+
+            if (searchResult == null)
+                return false;
+
+
+            JsonSerializeWrapper<StarJsonSerializeData> stars = new JsonSerializeWrapper<StarJsonSerializeData>();
+            var starsData = context.Stars.ToList();
+
+            foreach(var star in starsData)
             {
-                try
+                stars.items.Add(new StarJsonSerializeData
                 {
-                    var result = await client.GetAsync(NASA_API_URL);
-                    result.EnsureSuccessStatusCode();
-
-                    var responseStream = await result.Content.ReadAsStreamAsync();
-
-                    double rad = (Math.PI / 180);
-                    List<string[]> csvData = new List<string[]>();
-
-             
-                    using (StreamReader reader = new StreamReader(responseStream))
-                    {
-                        string line;
-                        while ((line = reader.ReadLine()) != null)
-                        {
-                            string[] values = line.Split(',');
-                            csvData.Add(values);
-                        }
-                    }
-
-                    using (var writer = new StreamWriter(ExoplanetFilePath))
-                    {
-                        var firstEntry = csvData.First();
-                        await writer.WriteLineAsync($"{firstEntry[0]},{firstEntry[1]},{firstEntry[4]},x,y,z");
-                        csvData.RemoveAt(0);
-                        foreach (var entry in csvData)
-                        {
-                            double dist = 1 / double.Parse(entry[4], CultureInfo.InvariantCulture);
-
-                            double ra_rad = rad * double.Parse(entry[2], CultureInfo.InvariantCulture);
-                            double dec_rad = rad * double.Parse(entry[3], CultureInfo.InvariantCulture);
-
-                            double sin_ra_rad = Math.Sin(ra_rad);
-                            double cos_ra_rad = Math.Cos(ra_rad);
-
-                            double sin_dec_rad = Math.Sin(dec_rad);
-                            double cos_dec_rad = Math.Cos(dec_rad);
-
-                            StringBuilder sb = new StringBuilder();
-                            sb.Append(entry[0]);
-                            sb.Append(',');
-                            sb.Append(entry[1]);
-                            sb.Append(',');
-                            sb.Append(entry[4]);
-                            sb.Append(',');
-
-                            double x = dist * cos_dec_rad * cos_ra_rad;
-                            double y = dist * cos_dec_rad * sin_ra_rad;
-                            double z = dist * sin_dec_rad;
-
-                            sb.Append(x.ToString(CultureInfo.InvariantCulture));
-                            sb.Append(',');
-                            sb.Append(y.ToString(CultureInfo.InvariantCulture));
-                            sb.Append(',');
-                            sb.Append(z.ToString(CultureInfo.InvariantCulture));
-                            sb.Append('\n');
-
-                            await writer.WriteAsync(sb.ToString());
-                        }
-                    }
-                    
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    return false;
-                }
+                    GAIA_id = star.GAIA_id,
+                    x = star.x,
+                    y = star.y,
+                    z = star.z,
+                });
             }
+
+            string jsonData = JsonConvert.SerializeObject(stars, Formatting.None);
+
+            File.WriteAllText(Path.Combine(CachePath, $"{exoplanetName}.json"), jsonData);
+
+            return true;
+        }
+
+        public static void GetExoplanets(AppDbContext context)
+        {
+            JsonSerializeWrapper<ExoplanetJsonSerializeData> exoplanetData = new JsonSerializeWrapper<ExoplanetJsonSerializeData>();
+            exoplanetData.items = context.Exoplanets.Select(e => new ExoplanetJsonSerializeData
+            {
+                name = e.name,
+                x = e.x,
+                y = e.y,
+                z = e.z,
+            }).ToList();
+
+            string jsonData = JsonConvert.SerializeObject(exoplanetData, Formatting.None);
+            File.WriteAllText(Path.Combine(CachePath, "EXOPLANETS.json"), jsonData);
+        }
+
+        private static (double, double, double) ConvertToCartesian(double ra, double dec, double parallax)
+        {
+            double dist = (1 / parallax) * 1000;
+
+            double ra_rad = rad * ra;
+            double dec_rad = rad * dec;
+
+            double sin_ra_rad = Math.Sin(ra_rad);
+            double cos_ra_rad = Math.Cos(ra_rad);
+
+            double sin_dec_rad = Math.Sin(dec_rad);
+            double cos_dec_rad = Math.Cos(dec_rad);
+
+            double x = dist * cos_dec_rad * cos_ra_rad;
+            double y = dist * cos_dec_rad * sin_ra_rad;
+            double z = dist * sin_dec_rad;
+
+            return (x, y, z);
+        }
+
+
+        private class ExoplanetJsonDeserializeData
+        {
+            public string pl_name { get; set; }
+            public string hostname { get; set; }
+            public double ra {  get; set; }
+            public double dec { get; set; }
+            public double sy_plx { get; set; }
+        }
+
+        private class ExoplanetJsonSerializeData
+        {
+            public string name { get; set; }
+            public double x { get; set; }
+            public double y { get; set; }
+            public double z { get; set; }
+        }
+
+        private class StarJsonSerializeData
+        {
+            public string GAIA_id { get; set; }
+            public double x { get; set; }
+            public double y { get; set; }
+            public double z { get; set; }
+        }
+
+        public class JsonSerializeWrapper<T>
+        {
+            public List<T> items = new List<T>();
         }
     }
 }
