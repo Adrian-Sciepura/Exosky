@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Menu.uss?fileID=7433441132597879392&amp;guid=d4a4f168f6d11794e940bd6baa0b9324&amp;type=3#Menu" />
+    <ui:VisualElement name="MenuPanel" style="flex-grow: 1; width: 30%; align-self: flex-end; justify-content: center; background-color: rgba(255, 255, 255, 0.04); padding-top: 20px; padding-right: 20px; padding-bottom: 20px; padding-left: 20px;">
+        <ui:VisualElement name="HeaderSection" style="flex-grow: 1; margin-top: 20px; margin-right: 20px; margin-bottom: 20px; margin-left: 20px; align-items: center;">
+            <ui:Label tabindex="-1" text="Exosky" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Header" style="justify-content: center; background-color: rgba(255, 255, 255, 0); -unity-text-align: upper-center; color: rgb(178, 178, 178); font-size: 36px; -unity-font-style: bold;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="ListSection" style="flex-grow: 2; -unity-text-align: upper-center; justify-content: center; align-items: center; align-self: auto;">
+            <ui:Label tabindex="-1" text="Select Exoplanet" parse-escape-sequences="true" display-tooltip-when-elided="true" name="InfoLabel" style="-unity-text-align: upper-center; font-size: 26px; color: rgb(202, 202, 202);" />
+            <ui:ListView focusable="true" name="ExoplanetList" style="color: rgb(99, 99, 99); -unity-text-align: upper-left; width: 60%; height: 80%;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="FooterSection" style="flex-grow: 1; justify-content: center; align-items: center; margin-top: 20px; margin-right: 20px; margin-bottom: 20px; margin-left: 20px;">
+            <ui:Button text="Jump" parse-escape-sequences="true" display-tooltip-when-elided="true" name="JumpButton" style="width: 50%; justify-content: center; align-self: center; align-items: center;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

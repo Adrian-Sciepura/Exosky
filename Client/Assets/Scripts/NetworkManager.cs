@@ -34,6 +34,8 @@ public class NetworkManager : MonoBehaviour
     [HideInInspector] public JsonWrapper<Star> stars;
     [HideInInspector] public JsonWrapper<Exoplanet> exoplanets;
 
+    public bool areStarsDataPending = true;
+    public bool areExoplanetsDataPending = true;
 
     public void Awake()
     {
@@ -45,10 +47,12 @@ public class NetworkManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(this);
+        NetworkManager.Instance.RequestExoplanets();
     }
 
     public void RequestExoplanets()
     {
+        areExoplanetsDataPending = true;
         string apiUrl = @"https://localhost:7054/api/Exosky/getExoplanets";
 
         Debug.Log("Requested for exoplanets data");
@@ -58,13 +62,13 @@ public class NetworkManager : MonoBehaviour
             var result = req.downloadHandler.text;
             exoplanets = JsonUtility.FromJson<JsonWrapper<Exoplanet>>(result);
             Debug.Log($"Loaded {exoplanets.items.Length} exoplanets");
-
-            RequestExoplanetStars(exoplanets.items[0].name);
+            areExoplanetsDataPending = false;
         }));
     }
 
     public void RequestExoplanetStars(string exoplanetName)
     {
+        areStarsDataPending = true;
         string apiUrl = $@"https://localhost:7054/api/Exosky/getExoplanetStars/{Uri.EscapeDataString(exoplanetName)}";
 
         Debug.Log($"Requested for {exoplanetName} exoplanet stars data");
@@ -75,6 +79,7 @@ public class NetworkManager : MonoBehaviour
             stars = JsonUtility.FromJson<JsonWrapper<Star>>(result);
 
             Debug.Log($"Loaded {stars.items.Length} stars");
+            areStarsDataPending = false;
         }));
     }
 

@@ -34,10 +34,9 @@ public class ObjectsManager : MonoBehaviour
 
     public void ClearAll()
     {
-        foreach(Transform child in spawnedExoplanetsRoot.transform)
-            Destroy(child.gameObject);
+        isRendering = false;
 
-        foreach(Transform child in spawnedStarsRoot.transform)
+        foreach(Transform child in spawnedExoplanetsRoot.transform)
             Destroy(child.gameObject);
     }
 
@@ -47,7 +46,6 @@ public class ObjectsManager : MonoBehaviour
 
         Exoplanet currExoplanet = NetworkManager.Instance.exoplanets.items[0];
         Vector3 exoplanetPos = new Vector3((float)currExoplanet.x, (float)currExoplanet.y, (float)currExoplanet.z);
-        //exoplanetPos /= 5.0f;
         var newObj = Instantiate(exoplanetPrefab, exoplanetPos, Quaternion.identity, spawnedExoplanetsRoot.transform);
         mainCameraObject.transform.position = newObj.transform.position;
         newObj.SetActive(false);
@@ -68,7 +66,6 @@ public class ObjectsManager : MonoBehaviour
         foreach (var star in NetworkManager.Instance.stars.items)
         {
             startPos = new Vector3((float)star.x, (float)star.y, (float)star.z);
-            //startPos /= 5.0f;
             matrices[i++] = Matrix4x4.TRS(startPos, Quaternion.identity, Vector3.one);
         }
 
