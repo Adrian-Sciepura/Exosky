@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 0}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.12731704, g: 0.13414727, b: 0.121078536, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -156,6 +156,7 @@ MonoBehaviour:
   spawnedStarsRoot: {fileID: 1109229366}
   exoplanetPrefab: {fileID: 5186947672579231055, guid: 20d3ba8b5dbf1b2448bf4243f5d0037f, type: 3}
   starPrefab: {fileID: 2271342541018024697, guid: 7dd3a11da1fb2214aad5f9fbb2586a9b, type: 3}
+  mainCameraObject: {fileID: 963194225}
 --- !u!4 &298985091
 Transform:
   m_ObjectHideFlags: 0
@@ -491,7 +492,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.1792453, g: 0.1792453, b: 0.1792453, a: 0}
+  m_BackGroundColor: {r: 0.006407972, g: 0.016931448, b: 0.1509434, a: 0.2}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -1173,10 +1174,10 @@ CanvasRenderer:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 963194228}
   - {fileID: 364491129}
   - {fileID: 298985091}
   - {fileID: 1315848696}
-  - {fileID: 963194228}
   - {fileID: 540167196}
   - {fileID: 828301491}
   - {fileID: 589901199}

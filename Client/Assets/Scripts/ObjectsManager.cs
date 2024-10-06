@@ -10,6 +10,8 @@ public class ObjectsManager : MonoBehaviour
     [SerializeField] private GameObject exoplanetPrefab;
     [SerializeField] private GameObject starPrefab;
 
+    [SerializeField] private GameObject mainCameraObject;
+
     Matrix4x4[] matrices;
     int noOfStars;
 
@@ -46,7 +48,9 @@ public class ObjectsManager : MonoBehaviour
         Exoplanet currExoplanet = NetworkManager.Instance.exoplanets.items[0];
         Vector3 exoplanetPos = new Vector3((float)currExoplanet.x, (float)currExoplanet.y, (float)currExoplanet.z);
         exoplanetPos /= 5.0f;
-        Instantiate(exoplanetPrefab, exoplanetPos, Quaternion.identity, spawnedExoplanetsRoot.transform);
+        var newObj = Instantiate(exoplanetPrefab, exoplanetPos, Quaternion.identity, spawnedExoplanetsRoot.transform);
+        mainCameraObject.transform.position = newObj.transform.position;
+        newObj.SetActive(false);
 
         // Stars
 
